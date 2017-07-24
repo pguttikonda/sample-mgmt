@@ -20,6 +20,7 @@ import org.w3c.dom.NodeList;
 
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.common.BitMatrix;
+import com.kenss.utilities.GoogleDriveClient;
 import com.kenss.utilities.StringUtilities;
  
 public class MacWarehouseInventoryManager {
@@ -39,10 +40,25 @@ public class MacWarehouseInventoryManager {
     {
 		MacWarehouseInventoryManager masterSKUMatcher = new MacWarehouseInventoryManager();
 		
+		String classpath = System.getProperty("java.class.path");
+		System.out.println(classpath);
+		String fileName = "product";
+		String fileLocation = "";
+		
     	if (args.length > 0) {
     		if (args[0].equalsIgnoreCase("iOS"))
     			masterSKUMatcher.setProductOSType("iOS");
     	}
+    	if (args.length > 1) {
+    		fileName = args[1];
+    	}
+    	if (args.length == 3)
+    		fileLocation = args[2];
+    	
+    	//TODO - Uncomment when ready. No reason to hammer the Drive API for every debug/test run.
+    	//GoogleDriveClient driveAPI = new GoogleDriveClient();
+    	//boolean masterFileDownloaded = driveAPI.downloadFileFromDrive(fileName, fileLocation);
+
     		
     	MacWarehouseProduct receivedProduct = new MacWarehouseProduct();
     	MacWarehouseSKU macWarehouseSKU = new MacWarehouseSKU();

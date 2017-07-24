@@ -24,6 +24,7 @@ import org.xml.sax.SAXException;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.kenss.utilities.ColorUtils;
 import com.kenss.utilities.StringUtilities;
 import com.opencsv.bean.CsvToBeanBuilder;
 
@@ -125,7 +126,7 @@ public class MWProductHelper {
 		
 		receivedProduct.setModelID(StrLookup.mapLookup(propertyMap).lookup("Model Identifier").trim());
 		receivedProduct.setProcessorDescription(StrLookup.mapLookup(propertyMap).lookup("Processor Name").trim());
-		receivedProduct.setProcessorSpeed(StrLookup.mapLookup(propertyMap).lookup("Processor Speed").split(" ", 1)[0].trim());
+		receivedProduct.setProcessorSpeed(StrLookup.mapLookup(propertyMap).lookup("Processor Speed").trim());
 		receivedProduct.setRamSize(StringUtils.deleteWhitespace(StrLookup.mapLookup(propertyMap).lookup("Memory")));
 		receivedProduct.setSerialNumber(StrLookup.mapLookup(propertyMap).lookup("Serial Number (system)").trim());
 		
@@ -398,15 +399,7 @@ public class MWProductHelper {
 	        		receivedProduct.setModelID(dataFields.deviceType);
 	        		receivedProduct.setHardDriveSize(StringUtils.deleteWhitespace(FormatUtil.formatBytesDecimal(dataFields.totalDiskCapacity)));
 	        		receivedProduct.setSerialNumber(dataFields.serialNumber);
-	        		try {
-	        			System.out.println("Product color: " + dataFields.color);
-	        			if(dataFields.color.indexOf('#') > -1) 
-	        				receivedProduct.setProductColor(Color.decode(dataFields.color).toString());
-	        			else
-	        				receivedProduct.setProductColor(dataFields.color);
-	        		}
-	        		catch (Exception e) {
-	        		}
+	        		receivedProduct.setProductColor(dataFields.color);
 	        	}
 	        }
 	        

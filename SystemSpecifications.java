@@ -71,32 +71,5 @@ public final class SystemSpecifications {
         System.out.println("Processor Vendor Freq: " + FormatUtil.formatHertz(processor.getVendorFreq()));
         System.out.println("Processor Stepping: " + processor.getStepping());
         */
-       /*
-       System.out.println("Disks:");
-        for (HWDiskStore disk : diskStores) {
-            boolean readwrite = disk.getReads() > 0 || disk.getWrites() > 0;
-            System.out.format(" %s: (model: %s - S/N: %s) size: %s, reads: %s (%s), writes: %s (%s), xfer: %s ms%n",
-                    disk.getName(), disk.getModel(), disk.getSerial(),
-                    disk.getSize() > 0 ? FormatUtil.formatBytesDecimal(disk.getSize()) : "?",
-                    readwrite ? disk.getReads() : "?", readwrite ? FormatUtil.formatBytes(disk.getReadBytes()) : "?",
-                    readwrite ? disk.getWrites() : "?", readwrite ? FormatUtil.formatBytes(disk.getWriteBytes()) : "?",
-                    readwrite ? disk.getTransferTime() : "?");
-            HWPartition[] partitions = disk.getPartitions();
-            for (HWPartition part : partitions) {
-                System.out.format(" |-- %s: %s (%s) Maj:Min=%d:%d, size: %s%s%n", part.getIdentification(),
-                        part.getName(), part.getType(), part.getMajor(), part.getMinor(),
-                        FormatUtil.formatBytesDecimal(part.getSize()),
-                        part.getMountPoint().isEmpty() ? "" : " @ " + part.getMountPoint());
-            }
-        }
-     
-        System.out.println("Displays:");
-        int i = 0;
-        for (Display display : displays) {
-            System.out.println(" Display " + i + ":");
-            System.out.println(display.toString().substring(display.toString().indexOf("Active Pixels ") + "Active Pixels".length(), display.toString().length()));
-            i++;
-        
-        }*/
 	}
 }
