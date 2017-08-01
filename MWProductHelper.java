@@ -1,7 +1,9 @@
 package com.inventory.macwarehouse;
 
 import java.awt.Color;
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -14,17 +16,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.text.StrLookup;
 import org.w3c.dom.Document;
+import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.kenss.utilities.ColorUtils;
+import com.kenss.utilities.Constants;
 import com.kenss.utilities.StringUtilities;
 import com.opencsv.bean.CsvToBeanBuilder;
 
@@ -43,28 +49,32 @@ public class MWProductHelper {
 		try {
 			systemInfoString = MacSystemInformation.getHardwareInfo();
 			parseHardwareInfo(receivedProduct, systemInfoString);
-			System.out.println(systemInfoString);
+			//System.out.println(systemInfoString);
 			
 			systemInfoString = MacSystemInformation.getSoftwareInfo();
 			parseSoftwareInfo(receivedProduct, systemInfoString);
-			System.out.println(systemInfoString);
+			//System.out.println(systemInfoString);
 			
 			systemInfoString = MacSystemInformation.getDisplaysInfo();
 			parseDisplayInfo(receivedProduct, systemInfoString);
-			System.out.println(systemInfoString);
+			//System.out.println(systemInfoString);
 			
-			systemInfoString = MacSystemInformation.getStorageInfo();
-			parseStorageInfo(receivedProduct, systemInfoString);
-			System.out.println(systemInfoString);
+			systemInfoString = MacSystemInformation.getSATAStorageInfo();
+			parseSATAStorageInfo(receivedProduct, systemInfoString);
+			
+			systemInfoString = MacSystemInformation.getPATAStorageInfo();
+			parsePATAStorageInfo(receivedProduct, systemInfoString);
+
+			if (!receivedProduct.getHardDriveType().contains("HDD") && !(receivedProduct.getHardDriveType().contains("SSD"))) {
+				systemInfoString = MacSystemInformation.getStorageInfo();
+				parseStorageInfo(receivedProduct, systemInfoString);
+				//System.out.println(systemInfoString);
+			}
 			
 			String descriptiveModelInfo = getProductSpecsFromApple(receivedProduct.getSerialNumber());
 			if(!descriptiveModelInfo.isEmpty()) {
 				parseDescriptiveModelInfo(receivedProduct, descriptiveModelInfo);
 			}
-			
-			//Turns out, it doesn't, no matter how much I tried. looks like all of the data is coming from javascript files, loaded as part of the response, resulting in additional server calls, after the 
-			//initial response is received.
-			//doesTheSpecsSiteWork();
 		}
 		catch (IOException ioe){
 			System.out.println("IOException while invoking system_profiler. Falling back to native oshi calls");
@@ -75,7 +85,7 @@ public class MWProductHelper {
 			return;
 		}
 	}
-	
+
 	private MacWarehouseProduct parseDescriptiveModelInfo(MacWarehouseProduct receivedProduct, String descriptiveModelInfo) throws ParserConfigurationException, SAXException, IOException {
 		if (receivedProduct == null || descriptiveModelInfo == null || descriptiveModelInfo.isEmpty())
 			return null;
@@ -127,6 +137,7 @@ public class MWProductHelper {
 		receivedProduct.setModelID(StrLookup.mapLookup(propertyMap).lookup("Model Identifier").trim());
 		receivedProduct.setProcessorDescription(StrLookup.mapLookup(propertyMap).lookup("Processor Name").trim());
 		receivedProduct.setProcessorSpeed(StrLookup.mapLookup(propertyMap).lookup("Processor Speed").trim());
+		receivedProduct.setNoOfCores(Integer.parseInt((StrLookup.mapLookup(propertyMap).lookup("Total Number of Cores").trim())));
 		receivedProduct.setRamSize(StringUtils.deleteWhitespace(StrLookup.mapLookup(propertyMap).lookup("Memory")));
 		receivedProduct.setSerialNumber(StrLookup.mapLookup(propertyMap).lookup("Serial Number (system)").trim());
 		
@@ -152,6 +163,72 @@ public class MWProductHelper {
 		receivedProduct.setOsVersion(StrLookup.mapLookup(propertyMap).lookup("System Version").trim());
 
 		return receivedProduct;
+	}
+	
+	private MacWarehouseProduct parseSATAStorageInfo (MacWarehouseProduct receivedProduct, String storageInfo) {
+		if (receivedProduct == null || storageInfo == null || storageInfo.isEmpty())
+			return null;
+		
+		if (!storageInfo.contains("SATA")) {
+			System.out.println("Cannot find SATA storage info in the returned string from profiler: " + storageInfo);
+			return null;
+		}
+		
+		
+		Map<String, String> propertyMap = convertSystemInfoStringToMap(storageInfo);
+
+		if (propertyMap.isEmpty())
+			return null;
+		
+		try {
+			String[] tempHDCapacity = StringUtils.split(StrLookup.mapLookup(propertyMap).lookup("Capacity"), "(");
+			receivedProduct.setHardDriveSize(StringUtils.deleteWhitespace(tempHDCapacity[0]));
+		}
+		catch (Exception e) {}
+		
+		if (StrLookup.mapLookup(propertyMap).lookup("Model").contains("HDD"))
+			receivedProduct.setHardDriveType("HDD");
+		else if (StrLookup.mapLookup(propertyMap).lookup("Model").contains("SSD"))
+			receivedProduct.setHardDriveType("SSD");
+		else
+			receivedProduct.setHardDriveType(StrLookup.mapLookup(propertyMap).lookup("Model").trim());
+		
+		return receivedProduct;
+
+	}
+	
+	private MacWarehouseProduct parsePATAStorageInfo (MacWarehouseProduct receivedProduct, String storageInfo) {
+		if (receivedProduct == null || storageInfo == null || storageInfo.isEmpty())
+			return null;
+		
+		if (!storageInfo.contains("Parallel") || !storageInfo.contains("PATA")) {
+			System.out.println("Cannot find Parallel ATA storage info in the returned string from profiler: " + storageInfo);
+			return null;
+		}
+		
+		
+		Map<String, String> propertyMap = convertSystemInfoStringToMap(storageInfo);
+
+		if (propertyMap.isEmpty())
+			return null;
+		
+		try {
+			String[] tempHDCapacity = StringUtils.split(StrLookup.mapLookup(propertyMap).lookup("Capacity"), "(");
+			receivedProduct.setHardDriveSize(StringUtils.deleteWhitespace(tempHDCapacity[0]));
+		}
+		catch (Exception e) {}
+		
+		if (StrLookup.mapLookup(propertyMap).lookup("Model").contains("HDD"))
+			receivedProduct.setHardDriveType("HDD");
+		else if (StrLookup.mapLookup(propertyMap).lookup("Model").contains("SSD"))
+			receivedProduct.setHardDriveType("SSD");
+		else
+			receivedProduct.setHardDriveType(StrLookup.mapLookup(propertyMap).lookup("Model").trim());
+		
+		System.out.println("Parallel ATA HD Size & TYpe" + receivedProduct.getHardDriveSize() + ",   " + receivedProduct.getHardDriveType());
+
+		return receivedProduct;
+
 	}
 	
 	private MacWarehouseProduct parseStorageInfo (MacWarehouseProduct receivedProduct, String storageInfo) {
@@ -220,10 +297,11 @@ public class MWProductHelper {
 		return propertyMap;
 	}
 	
-	private String doesTheSpecsSiteWork () {
+	public String doesTheSpecsSiteWork (String serialNumber) {
 		HttpURLConnection connection = null;
-		StringBuilder targetURL = new StringBuilder("https://support.apple.com/specs/C02QX39SGG78");
-		System.out.println("Complete URL : " + targetURL.toString());
+		//StringBuilder targetURL = new StringBuilder("https://support.apple.com/specs/C02QX39SGG78");
+		StringBuilder targetURL = new StringBuilder("http://www.powerbookmedic.com/identify-mac-serial.php?serial=");
+		targetURL.append(serialNumber);
 		
 		try {
 		    //Create connection
@@ -242,7 +320,7 @@ public class MWProductHelper {
 				  response.append('\r');
 			}
 		    rd.close();
-		    //System.out.println(response.toString());
+		    System.out.println(response.toString());
 		    return response.toString();
 		    
 		    
@@ -259,7 +337,7 @@ public class MWProductHelper {
 		return "";
 	}
 	
-	private String getProductSpecsFromApple (String productSerialNumber) {
+	public String getProductSpecsFromApple (String productSerialNumber) {
 		HttpURLConnection connection = null;
 		StringBuilder targetURL = new StringBuilder("http://support-sp.apple.com/sp/product?cc=");
 		if (!productSerialNumber.isEmpty()){
@@ -276,8 +354,6 @@ public class MWProductHelper {
 			return "";
 		
 		targetURL.append("&lang=en_US");
-		System.out.println("Complete URL : " + targetURL.toString());
-		
 		try {
 		    //Create connection
 			URL url = new URL(targetURL.toString());
@@ -329,7 +405,41 @@ public class MWProductHelper {
 	        return stringBuilder.toString().trim();
 	    }
 	    
-	    static String getSoftwareInfo() throws IOException
+	    static String getSATAStorageInfo() throws IOException {
+			Runtime runtime = Runtime.getRuntime();
+	        Process process = runtime.exec("system_profiler -detailLevel mini SPSerialATADataType");
+	        BufferedReader systemInformationReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+	
+	        StringBuilder stringBuilder = new StringBuilder();
+	        String line;
+	
+	        while ((line = systemInformationReader.readLine()) != null)
+	        {
+	            stringBuilder.append(line);
+	            stringBuilder.append(System.lineSeparator());
+	        }
+	
+	        return stringBuilder.toString().trim();
+		}
+	    
+	    static String getPATAStorageInfo() throws IOException {
+			Runtime runtime = Runtime.getRuntime();
+	        Process process = runtime.exec("system_profiler -detailLevel mini SPParallellATADataType");
+	        BufferedReader systemInformationReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+	
+	        StringBuilder stringBuilder = new StringBuilder();
+	        String line;
+	
+	        while ((line = systemInformationReader.readLine()) != null)
+	        {
+	            stringBuilder.append(line);
+	            stringBuilder.append(System.lineSeparator());
+	        }
+	
+	        return stringBuilder.toString().trim();
+		}
+
+		static String getSoftwareInfo() throws IOException
 	    {
 	        Runtime runtime = Runtime.getRuntime();
 	        Process process = runtime.exec("system_profiler -detailLevel full SPSoftwareDataType");
@@ -368,7 +478,7 @@ public class MWProductHelper {
 	    static String getStorageInfo() throws IOException
 	    {
 	        Runtime runtime = Runtime.getRuntime();
-	        Process process = runtime.exec("system_profiler -detailLevel full SPStorageDataType");
+	        Process process = runtime.exec("system_profiler -detailLevel full SPSerialATADataType SPParallelATADataType");
 	        BufferedReader systemInformationReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
 	
 	        StringBuilder stringBuilder = new StringBuilder();
@@ -384,14 +494,15 @@ public class MWProductHelper {
 	    }
 	}
 
-	public MacWarehouseProduct getDeviceInformationFromCFGUtilFile(MacWarehouseProduct receivedProduct) {
+	public MacWarehouseProduct getDeviceInformationFromCFGUtilFile(MacWarehouseProduct receivedProduct, String iOSDataFileName) {
 		
 		//For iOS devices, a file is generated with all the device info into folder specified in properties file.
 		receivedProduct.setOsVersion("iOS");
 		try {
 			GsonBuilder builder = new GsonBuilder();
 	        Gson gson = builder.create();
-	        IOSProductJSONFields iOSProduct = gson.fromJson(new FileReader("info.txt"), IOSProductJSONFields.class);
+	        String filePath = Constants.GENERATED_FILE_PATH + iOSDataFileName;
+	        IOSProductJSONFields iOSProduct = gson.fromJson(new FileReader(filePath), IOSProductJSONFields.class);
 	        Set<String> keys = iOSProduct.outputData.keySet();
 	        for (String key : keys) {
 	        	if (!key.equalsIgnoreCase("errors")){
@@ -400,6 +511,9 @@ public class MWProductHelper {
 	        		receivedProduct.setHardDriveSize(StringUtils.deleteWhitespace(FormatUtil.formatBytesDecimal(dataFields.totalDiskCapacity)));
 	        		receivedProduct.setSerialNumber(dataFields.serialNumber);
 	        		receivedProduct.setProductColor(dataFields.color);
+	        		//TODO - Get other fields
+	        		//Determine if this is a cellular device or WiFi only (ICCID? or IMEI works for a carrier check, but what if there is no service)
+	        		//What other fields can be used?!?!?
 	        	}
 	        }
 	        
@@ -408,7 +522,6 @@ public class MWProductHelper {
 				parseDescriptiveModelInfo(receivedProduct, descriptiveModelInfo);
 			}
 
-	        System.out.println("JSON parsing sucessfulll?!?!?!?!?");
 	        return receivedProduct;
 		}
 		catch (Exception e) {

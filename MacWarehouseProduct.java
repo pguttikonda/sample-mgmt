@@ -6,6 +6,37 @@ import com.opencsv.bean.CsvBindByName;
 
 public class MacWarehouseProduct implements java.lang.Iterable<MacWarehouseProduct>{
 
+	public MacWarehouseProduct() {
+		super();
+		SKU = "";
+		this.productName = "";
+		this.productClass = "";
+		this.productCategory = "";
+		this.productSubCategory = "";
+		this.modelNumber = "";
+		this.processor = "";
+		this.processorDescription = "";
+		this.processorSpeed = "";
+		this.screenSize = "";
+		this.ramSize = "";
+		this.resolution = "";
+		GPU = "";
+		VRAM = "";
+		this.hardDriveSize = "";
+		this.hardDriveType = "";
+		this.productColor = "";
+		this.carrier = "";
+		this.productYear = "";
+		this.modelID = "";
+		UPC = "";
+		this.productType = "";
+		this.specString = "";
+		this.charger = "";
+		this.noOfCores = 0;
+		this.osVersion = "";
+		this.serialNumber = "";
+	}
+
 	@CsvBindByName(column = "SKU", required = true)
 	private String SKU;
 	
@@ -77,6 +108,8 @@ public class MacWarehouseProduct implements java.lang.Iterable<MacWarehouseProdu
 	
 	@CsvBindByName(column = "Charger")
 	private String charger;
+	
+	private int noOfCores;
 	
 	private String osVersion;
 	
@@ -305,6 +338,14 @@ public class MacWarehouseProduct implements java.lang.Iterable<MacWarehouseProdu
 				.append("   ")
 				.append(this.hardDriveSize)
 				.toString();
+	}
+
+	public int getNoOfCores() {
+		return noOfCores;
+	}
+
+	public void setNoOfCores(int noOfCores) {
+		this.noOfCores = noOfCores;
 	}
 	
 	

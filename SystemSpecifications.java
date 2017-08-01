@@ -49,8 +49,10 @@ public final class SystemSpecifications {
         //receivedProduct.setScreenSize(displays[0].toString());
         //System.out.println(receivedProduct.getScreenSize());
         //receivedProduct.setHardDriveSize(new Long( diskStores[0].getSize()).toString());
-        receivedProduct.setHardDriveSize( diskStores[0].getSize() > 0 ? StringUtils.deleteWhitespace(FormatUtil.formatBytesDecimal(diskStores[0].getSize())) : "0 GB");
-        System.out.println(receivedProduct.getHardDriveSize().trim());
+        if (receivedProduct.getHardDriveSize() == null || receivedProduct.getHardDriveSize().isEmpty()){
+        	receivedProduct.setHardDriveSize( diskStores[0].getSize() > 0 ? StringUtils.deleteWhitespace(FormatUtil.formatBytesDecimal(diskStores[0].getSize())) : "0 GB");
+        	System.out.println(receivedProduct.getHardDriveSize().trim());
+        }
         
         //Set all required member variables (info) of MacWarehouseProduct
         //receivedProduct.setModelNumber(computerSystem.ge));
