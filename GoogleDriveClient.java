@@ -17,10 +17,14 @@ import com.google.api.services.drive.Drive;
 
 import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 
@@ -70,8 +74,10 @@ public class GoogleDriveClient {
      */
     public static Credential authorize() throws IOException {
         // Load client secrets.
+        //InputStream in =
+        		//GoogleDriveClient.class.getResourceAsStream("client_secret.json");
         InputStream in =
-        		GoogleDriveClient.class.getResourceAsStream("client_secret.json");
+        		GoogleDriveClient.class.getResourceAsStream(Constants.GDRIVE_CREDS_FILE);
         GoogleClientSecrets clientSecrets =
             GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(in));
 
@@ -83,7 +89,7 @@ public class GoogleDriveClient {
                 .setAccessType("offline")
                 .build();
         Credential credential = new AuthorizationCodeInstalledApp(
-            flow, new LocalServerReceiver()).authorize("id4information@gmail.com");
+            flow, new LocalServerReceiver()).authorize(Constants.GDRIVE_USER_INFO);
         System.out.println(
                 "Credentials saved to " + DATA_STORE_DIR.getAbsolutePath());
         return credential;
@@ -113,9 +119,17 @@ public class GoogleDriveClient {
         if (fileLocation == null || fileLocation.isEmpty())
         	fileLocation = "";
         
+        //Check to see if the file exists locally. If it does, don't download again.
+        //Path filePath = Paths.get (fileLocation + fileName + "_drive1");
+        Path filePath = Paths.get (Constants.MASTER_PRODUCT_FILE_NAME);
+        if (Files.exists(filePath)) {
+        	System.out.println("Product master file exists. Not downloading from Drive.");
+        	return true;
+        }
+        
         //Accessing Google Drive and getting a list of files worked. Now download the master product list as a CSV file and save it to the right location,
         FileList xxx = service.files().list()
-    									.setQ("name contains '" + fileName + "'")
+    									.setQ("name contains '" + Constants.MASTER_PRODUCT_FILE_NAME + "'")
     									.execute();
         if (xxx.isEmpty()) {
         	System.out.println("Cannot find the master product list in Drive?!?!?!?!");
@@ -123,33 +137,18 @@ public class GoogleDriveClient {
         }
         else {
         	for (File tempFile : xxx.getFiles()) {
-        		if (tempFile.getName().equalsIgnoreCase("product_list")){
+        		if (tempFile.getName().equalsIgnoreCase(Constants.MASTER_PRODUCT_FILE_NAME)){
         			//OutputStream outputStream = new ByteArrayOutputStream();
-        			OutputStream outputStream = new FileOutputStream(fileLocation + fileName + "_drive1");
+        			OutputStream outputStream = new FileOutputStream(fileLocation + Constants.MASTER_PRODUCT_FILE_NAME);
         	        service.files().export(tempFile.getId(), "text/csv")
         	                .executeMediaAndDownloadTo(outputStream);
+        	        outputStream.close();
         	        return true;
         		}
         		
         	}
         }
         return false;
-        /*
-        // Print the names and IDs for up to 10 files.
-        FileList result = service.files().list()
-             .setPageSize(10)
-             .setFields("nextPageToken, files(id, name)")
-             .execute();
-        List<File> files = result.getFiles();
-        if (files == null || files.size() == 0) {
-            System.out.println("No files found.");
-        } else {
-            System.out.println("Files:");
-            for (File file : files) {
-                System.out.printf("%s (%s)\n", file.getName(), file.getId());
-            }
-        }
-        */
     }
 
 }
