@@ -20,9 +20,9 @@ public class DymoIntegration {
 	public boolean generateDymoJSAPIFile (String serialNumber) {
 		
 		try {
-    		BufferedWriter out = new BufferedWriter (new FileWriter("/Users/pguttikonda/Desktop/MacWarehouse/web/main.js"));
+    		BufferedWriter out = new BufferedWriter (new FileWriter("web/main.js"));
     		
-    		
+    		String labelFileLocation = Constants.DEFAULT_FILE_PATH + "/" + Constants.GENERATED_FILE_PATH;
     		
     	    String labelLine = "var printers = dymo.label.framework.getPrinters();\n" +
 						    	    "if (printers.length == 0){\n" + 
@@ -33,13 +33,11 @@ public class DymoIntegration {
 						    	    	"}\n" +
 						    	    	"console.log('Printer name...........');\n" + 
 						    	    	"console.log(printerName);\n" +
-						    	    	"var labelXML = dymo.label.framework.openLabelFile(\"/Users/pguttikonda/Desktop/MacWarehouse/generated/" + serialNumber + ".label\");\n" +
+						    	    	"var labelXML = dymo.label.framework.openLabelFile(\"" + labelFileLocation + serialNumber + ".label\");\n" +
 						    	    	"var labelXml = labelXML.toString();\n"+
-										"labelXML.print(printerName);\n" + 
-						    	    	"console.log('Did it print????........');\n"; 
+										"labelXML.print(printerName);\n"; 
 
 	    	out.write(labelLine);
-	    	out.write("\n");
 	    	out.flush();
 			out.close();
 		} 

@@ -15,9 +15,7 @@ import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.drive.model.*;
 import com.google.api.services.drive.Drive;
 
-import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -35,7 +33,7 @@ public class GoogleDriveClient {
 
     /** Directory to store user credentials for this application. */
     //private static final java.io.File DATA_STORE_DIR = new java.io.File(
-        //System.getProperty("user.home"), ".credentials/drive-java-quickstart");
+       		//System.getProperty("user.home"), ".credentials/drive-java-quickstart");
     private static final java.io.File DATA_STORE_DIR = new java.io.File(
             System.getProperty("user.home"), ".credentials/skumatch");
     		
@@ -75,7 +73,7 @@ public class GoogleDriveClient {
     public static Credential authorize() throws IOException {
         // Load client secrets.
         //InputStream in =
-        		//GoogleDriveClient.class.getResourceAsStream("client_secret.json");
+        	//	GoogleDriveClient.class.getResourceAsStream("client_secret.json");
         InputStream in =
         		GoogleDriveClient.class.getResourceAsStream(Constants.GDRIVE_CREDS_FILE);
         GoogleClientSecrets clientSecrets =
@@ -90,8 +88,8 @@ public class GoogleDriveClient {
                 .build();
         Credential credential = new AuthorizationCodeInstalledApp(
             flow, new LocalServerReceiver()).authorize(Constants.GDRIVE_USER_INFO);
-        System.out.println(
-                "Credentials saved to " + DATA_STORE_DIR.getAbsolutePath());
+        //System.out.println(
+          //      "Credentials saved to " + DATA_STORE_DIR.getAbsolutePath());
         return credential;
     }
 
@@ -123,7 +121,6 @@ public class GoogleDriveClient {
         //Path filePath = Paths.get (fileLocation + fileName + "_drive1");
         Path filePath = Paths.get (Constants.MASTER_PRODUCT_FILE_NAME);
         if (Files.exists(filePath)) {
-        	System.out.println("Product master file exists. Not downloading from Drive.");
         	return true;
         }
         

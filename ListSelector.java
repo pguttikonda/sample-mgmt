@@ -8,6 +8,7 @@ import javax.swing.*;
 import javax.swing.border.Border;
 
 import com.inventory.macwarehouse.MacWarehouseProduct;
+import com.inventory.macwarehouse.MacWarehouseSKU;
  
 
 public class ListSelector extends JFrame{
@@ -59,8 +60,39 @@ public class ListSelector extends JFrame{
 	   }
 	   
 	   public void showList(ArrayList<MacWarehouseProduct> shortenedList, MacWarehouseProduct receivedProduct) {           
-		   
-	      headerLabel.setText("This product's Specs:  " + receivedProduct.toString());
+		  
+		   MacWarehouseSKU mwSku = new MacWarehouseSKU();
+		   StringBuilder itemDescription = new StringBuilder("Product description: ");
+			  
+		  if (receivedProduct.getOsVersion().toLowerCase().contains("ios")){
+			  itemDescription.append("ModelID: ")
+							.append(receivedProduct.getModelID())
+							.append(", Product Type: ")
+							.append(receivedProduct.getProductType())
+							.append(", Color: ")
+							.append(receivedProduct.getProductColor())
+							.append(", Capacity: ")
+	  					    .append(receivedProduct.getHardDriveSize());
+		 }
+		 else {
+			  itemDescription.append("Model ID: ")
+			  					.append(receivedProduct.getModelID())
+			  					.append(", Hard Drive Size: ")
+			  					.append(receivedProduct.getHardDriveSize())
+			  					.append(", Hard drive type: ")
+			  					.append(receivedProduct.getHardDriveType())
+			  					.append(", RAM: ")
+			  					.append(receivedProduct.getRamSize())
+			  					.append(", Screen size: ")
+			  					.append(receivedProduct.getScreenSize())
+			  					.append(", Product year: ")
+			  					.append(receivedProduct.getProductYear())
+			  					.append(", CPU: ")
+			  					.append(receivedProduct.getProcessorDescription())
+			  					.append(", CPU speed: ")
+	  		  					.append(receivedProduct.getProcessorSpeed());
+		  }
+	      headerLabel.setText(itemDescription.toString());
 	      headerLabel.setHorizontalAlignment(SwingConstants.LEFT);
 	      itemSelectionButton.setEnabled(false);
 	      itemSelectionButton.setMaximumSize(new Dimension(50, 20));
@@ -121,6 +153,8 @@ public class ListSelector extends JFrame{
 			               data = "Item Selected: " + products.getSelectedValue(); 
 			               int index = products.getSelectedIndex();
 			               
+			               mwSku.setMatchingProductDataFields(receivedProduct, shortenedList.get(index));
+			               	
 							receivedProduct.setSKU(shortenedList.get(index).getSKU());
 							receivedProduct.setCarrier(shortenedList.get(index).getCarrier());
 							receivedProduct.setCharger(shortenedList.get(index).getCharger());
@@ -134,6 +168,11 @@ public class ListSelector extends JFrame{
 							receivedProduct.setProductYear(shortenedList.get(index).getProductYear());
 							receivedProduct.setScreenSize(shortenedList.get(index).getScreenSize());
 							receivedProduct.setSpecString(shortenedList.get(index).getSpecString());
+							//Set HD size, type to what's on the master list overwriting what was read from the device - this is to ensure that
+							//when generated barcode is scanned, it matches the item on the master list.
+							receivedProduct.setHardDriveSize(shortenedList.get(index).getHardDriveSize());
+							receivedProduct.setHardDriveType(shortenedList.get(index).getHardDriveType());
+							
 			               statusLabel.setText(data);
 			               mainFrame.setAlwaysOnTop(false);
 			               waitingForItemSelection=false;
@@ -150,7 +189,39 @@ public class ListSelector extends JFrame{
 
    		  }
 		  else {
-			  statusLabel.setText("NO MATCHES. ITEM NEEDS TO BE CREATED AND ADDED TO THE MASTER DATABASE");
+			  
+			  StringBuilder itemDisplayString = new StringBuilder("NO MATCHES. ITEM NEEDS TO BE CREATED AND ADDED TO THE MASTER DATABASE \n");
+			  
+			  if (receivedProduct.getOsVersion().toLowerCase().contains("ios")){
+				  itemDisplayString.append("ModelID: ")
+				  					.append(receivedProduct.getModelID())
+				  					.append(", Product Type: ")
+				  					.append(receivedProduct.getProductType())
+				  					.append(", Color: ")
+				  					.append(receivedProduct.getProductColor())
+				  					.append(", Capacity: ")
+				  					.append(receivedProduct.getHardDriveSize());
+			  }
+			  else {
+				  itemDisplayString.append("Model ID: ")
+				  					.append(receivedProduct.getModelID())
+				  					.append(", Hard Drive Size: ")
+				  					.append(receivedProduct.getHardDriveSize())
+				  					.append(", Hard drive type: ")
+				  					.append(receivedProduct.getHardDriveType())
+				  					.append(", RAM: ")
+				  					.append(receivedProduct.getRamSize())
+				  					.append(", Screen size: ")
+				  					.append(receivedProduct.getScreenSize())
+				  					.append(", Product year: ")
+				  					.append(receivedProduct.getProductYear())
+				  					.append(", CPU: ")
+				  					.append(receivedProduct.getProcessorDescription())
+				  					.append(", CPU speed: ")
+				  					.append(receivedProduct.getProcessorSpeed());
+			  }
+			  
+			  statusLabel.setText(itemDisplayString.toString());
 			  
 			  noMatchOKButton.addActionListener(new ActionListener() {
 			         public void actionPerformed(ActionEvent e) { 

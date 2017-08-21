@@ -46,13 +46,21 @@ public final class StringUtilities {
 				tempSize=Long.parseLong(StringUtils.substring(size, 0, size.indexOf(".")));
 			else
 				tempSize = Long.parseLong(size);
-			
-			//Value needs be exponents of 2
+			//Value needs be multiples of 2
 			if (tempSize%2 != 0) {
 				tempSize += (tempSize%2);
 				return (new String (tempSize + memoryUnit.toString()));
 			}
-			
+
+			/*
+			//normalize per 2 exp X (8/16/32/64/128/etc...)
+			if (tempSize > 0) {
+				double log = Math.log(tempSize) / Math.log(2);
+				long roundLog = Math.round(log);
+				tempSize = (long) Math.pow(2, roundLog);
+			}
+			return (new String (tempSize + memoryUnit.toString()));
+			*/
 		default:
 			return (size + memoryUnit.toString());
 			

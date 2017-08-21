@@ -40,10 +40,24 @@ public class MWLabelGenerator {
         	    		labelLine = StringUtils.replace(labelLine, "{{MODEL_NO}}", receivedProduct.getModelNumber());
         	    		labelLine = StringUtils.replace(labelLine, "{{SPEC_STRING}}", receivedProduct.getSpecString());
         	    		labelLine = StringUtils.replace(labelLine, "{{SERIAL_NO}}", receivedProduct.getSerialNumber());
-        	    		labelLine = StringUtils.replace(labelLine, "{{FULL_ITEM_STRING}}", receivedProduct.getModelNumber() + "Base Specs " + receivedProduct.getProductCategory()
-        	            							+ " " + receivedProduct.getSpecString() + " " + receivedProduct.getProductYear());
+        	    		//labelLine = StringUtils.replace(labelLine, "{{FULL_ITEM_STRING}}", receivedProduct.getModelNumber() + "Base Specs " + receivedProduct.getProductCategory()
+        	            	//						+ " " + receivedProduct.getSpecString() + " " + receivedProduct.getProductYear());
+        	    		labelLine = StringUtils.replace(labelLine, "{{FULL_ITEM_STRING}}", "Base Specs " + receivedProduct.getProductCategory()
+        	    											+ " " + receivedProduct.getSpecString() + " " + receivedProduct.getProductYear());
         	    		labelLine = StringUtils.replace(labelLine, "{{SKU}}", receivedProduct.getSKU());
         	    		labelLine = StringUtils.replace(labelLine, "{{PRODUCT_SHORT_NAME}}", "APPLE " + receivedProduct.getProductType());
+        	    		labelLine = StringUtils.replace(labelLine, "{{CHARGER}}", receivedProduct.getCharger());
+        	    		labelLine = StringUtils.replace(labelLine, "{{CPU_MEM_DETAILS}}", receivedProduct.getProcessor() + "/" + receivedProduct.getProcessorSpeed() + "/" + receivedProduct.getRamSize() + "/"
+        	    										+ receivedProduct.getHardDriveSize() + "/" + receivedProduct.getHardDriveType());
+        	    		if (receivedProduct.getBatteryCycleCount() > -1) {
+        	    			labelLine = StringUtils.replace(labelLine, "{{BATTERY_CYCLES}}", "" + receivedProduct.getBatteryCycleCount());
+        	    			labelLine = StringUtils.replace(labelLine, "{{BATTERY_HEALTH}}", receivedProduct.getBatteryCondition());
+        	    		}
+        	    		else {
+        	    			labelLine = StringUtils.replace(labelLine, "{{BATTERY_CYCLES}}", "N/A");
+        	    			labelLine = StringUtils.replace(labelLine, "{{BATTERY_HEALTH}}", "N/A");
+        	    		}
+
         	    	}
         	    	out.write(labelLine);
         	    	out.write("\n");

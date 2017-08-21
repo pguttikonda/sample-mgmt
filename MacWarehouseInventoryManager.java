@@ -85,8 +85,15 @@ public class MacWarehouseInventoryManager {
     	    		break;
     	    	case "printer_name":
     	    		Constants.PRINTER_NAME = props.getProperty(key);
+    	    		break;
     	    	case "label_template":
     	    		Constants.LABEL_TEMPLATE = props.getProperty(key);
+    	    		break;
+    	    	case "barcode_display_timer":
+    	    		Constants.BARCODE_TIMER = Integer.parseInt(props.getProperty(key));
+    	    		break;
+    	    	case "base_directory":
+    	    		Constants.DEFAULT_FILE_PATH = props.getProperty(key);
     	    		
     	    	}
     	    	properties.put(key, props.getProperty(key));
@@ -104,11 +111,10 @@ public class MacWarehouseInventoryManager {
     	return properties;
     }
     
-	public static void main(String[] args) throws IOException
+	public static void main(String[] args) throws IOException, Exception
     {
 		MacWarehouseInventoryManager masterSKUMatcher = new MacWarehouseInventoryManager();
 		
-		String fileName = "product";
 		String iOSData = "";
 		String fileLocation = "";
 		
@@ -128,7 +134,7 @@ public class MacWarehouseInventoryManager {
     	//TODO - Uncomment when ready. No reason to hammer the Drive API for every debug/test run.
     	if (Constants.DOWNLOAD_FROM_GDRIVE) {
     		GoogleDriveClient driveAPI = new GoogleDriveClient();
-    		boolean masterFileDownloaded = driveAPI.downloadFileFromDrive(fileName, fileLocation);
+    		boolean masterFileDownloaded = driveAPI.downloadFileFromDrive(Constants.MASTER_PRODUCT_FILE_NAME, fileLocation);
     	}
 
     		
@@ -144,8 +150,13 @@ public class MacWarehouseInventoryManager {
     		SystemSpecifications.getSpecs(receivedProduct);
     	}
     	else if (masterSKUMatcher.getProductOSType().equals("iOS")) {
-    		//Get mobile device information
-    		productHelper.getDeviceInformationFromCFGUtilFile(receivedProduct, iOSData);
+    		try {
+    			//Get mobile device information
+    			productHelper.getDeviceInformationFromCFGUtilFile(receivedProduct, iOSData);
+    		}
+    		catch (Exception e){
+    			throw e;
+    		}
     	}
     		
         
@@ -158,7 +169,41 @@ public class MacWarehouseInventoryManager {
             //Generate QR code using the spec string, ONLY IF a match is found
     		if (receivedProduct.getSKU() != null && !receivedProduct.getSKU().isEmpty()){
     			
-	            BitMatrix qrCodeMatrix = barcodeGenerator.generateBarcode(receivedProduct.getSpecString(), BarcodeFormat.QR_CODE, Constants.BARCODE_WIDTH, Constants.BARCODE_HEIGHT);
+    			//Generate QR code for the following string: SKU, serial #, Model, Processor, GHz, Ram, Storage, Battery cycles, Battery health
+    			StringBuilder barcodeStringBuilder = new StringBuilder();
+    			barcodeStringBuilder.append(receivedProduct.getSKU())	
+    								.append(",")
+    								.append(receivedProduct.getSerialNumber())
+    								.append(",")
+    								.append(receivedProduct.getModelNumber())
+    								.append(",")
+    								.append(receivedProduct.getProcessorDescription())
+    								.append(",")
+    								.append(receivedProduct.getProcessorSpeed())
+    								.append(",")
+    								.append(receivedProduct.getRamSize())
+    								.append(",")
+    								.append(receivedProduct.getHardDriveSize())
+    								.append(" ")
+    								.append(receivedProduct.getHardDriveType())
+    								.append(",");
+    			
+    			if (masterSKUMatcher.getProductOSType().equalsIgnoreCase("macos")){
+    				barcodeStringBuilder.append(receivedProduct.getBatteryCycleCount())
+    									.append(",")
+    									.append(receivedProduct.getBatteryCondition().isEmpty() ? "N/A" : receivedProduct.getBatteryCondition());
+    				
+    			}
+    			else {
+    				//No battery info for iOS devices
+    				barcodeStringBuilder.append("N/A")
+    									.append(",")
+    									.append("N/A");
+    			}
+    			
+    			
+    			
+	            BitMatrix qrCodeMatrix = barcodeGenerator.generateBarcode(barcodeStringBuilder.toString(), BarcodeFormat.QR_CODE, Constants.BARCODE_WIDTH, Constants.BARCODE_HEIGHT);
 	            
 	            //Generate the barcode and save it to disk using serialNumber as the fileName. Display the generated barcode image on the screen
 	            String generatedImagePath = barcodeGenerator.generateBarcodeImage(qrCodeMatrix, receivedProduct.getSerialNumber());
@@ -172,24 +217,23 @@ public class MacWarehouseInventoryManager {
 	            	dymo.generateDymoJSAPIFile(receivedProduct.getSerialNumber());
 	    		} catch (Exception e) {
 	    			e.printStackTrace();
+	    			throw e;
 	    		}
-	            System.out.println("All done with the core functions. Wait for 10 secs before closing windows and proceed to Print the label******************");
-	            try {
-		    		  Thread.sleep(10000);
-		    	}
-		    	catch (InterruptedException ie) {
-		    		  
-		    	}
+	            //System.out.println("All done with the core functions. Wait for barcode scan before proceeding to Print the label******************");
+	            
     		}
     	}
     	catch (Exception e) {
     		System.out.println ("Something went wrong determining internal sku number. Actual error: " + e.getMessage());
+    		throw e;
     	}
     	finally {
     		//Clean up any generated files - cfgutil files/barcode image files/ etc.........
             //All generated files have product serial number in the name
-    		Files.deleteIfExists(Paths.get(Constants.DEFAULT_FILE_PATH + receivedProduct.getSerialNumber() + ".jpg"));
-    		Files.deleteIfExists(Paths.get(Constants.DEFAULT_FILE_PATH + receivedProduct.getSerialNumber() + ".txt"));
+    		//Files.deleteIfExists(Paths.get(Constants.DEFAULT_FILE_PATH + receivedProduct.getSerialNumber() + ".jpg"));
+    		//Files.deleteIfExists(Paths.get(Constants.DEFAULT_FILE_PATH + receivedProduct.getSerialNumber() + ".txt"));
+    		//Files.deleteIfExists(Paths.get(Constants.DEFAULT_FILE_PATH + receivedProduct.getSerialNumber() + ".label"));
+    		//Files.deleteIfExists(Paths.get(Constants.DEFAULT_FILE_PATH + receivedProduct.getSerialNumber() + ".png"));
     	}
     	
     	System.exit(0);

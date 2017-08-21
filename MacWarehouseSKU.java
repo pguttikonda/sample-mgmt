@@ -29,11 +29,16 @@ public class MacWarehouseSKU {
 		
 		//Clean up HD size - eliminate decimals, normalize to 8/16/32/64/ & so on
 		receivedProduct.setHardDriveSize(StringUtilities.adjustHDSize(receivedProduct.getHardDriveSize()));
+		
 		//Map Hex colors to human readable Apple product colors
 		if(StringUtils.indexOf(receivedProduct.getProductColor(), '#') > -1)
 		{
 			ColorUtils colorUtils = new ColorUtils();
-			receivedProduct.setProductColor(colorUtils.getColorNameFromColor(Color.decode(receivedProduct.getProductColor())));
+			boolean hexColorFound = colorUtils.checkHexColorMapping(receivedProduct);
+			if (!hexColorFound)
+				receivedProduct.setProductColor(colorUtils.getColorNameFromColor(Color.decode(receivedProduct.getProductColor())));
+			
+			System.out.println("Mapped color for serial #: " + receivedProduct.getSerialNumber() + " : " + receivedProduct.getProductColor());
 		}
 		
 		if (receivedProduct.getProcessorSpeed().contains("GHz")){
@@ -221,7 +226,7 @@ public class MacWarehouseSKU {
 		
 		if (allProducts != null) {
 			List<MacWarehouseProduct> tmpProductList = new ArrayList<MacWarehouseProduct>();
-			System.out.println(allProducts.size());
+			
 			//Filter 'B' skus - products NOT in GOOD cosmetic condition
 			for (MacWarehouseProduct tmp : allProducts) {
 				if (tmp.getSKU().endsWith("A")){
@@ -229,7 +234,6 @@ public class MacWarehouseSKU {
 				}
 			}
 			allProducts = tmpProductList;
-			System.out.println(allProducts.size());
 		}
 		
 		//Remove all products in the Master list that are for less-than=perfect body condition (so-called "B Skus")
@@ -250,20 +254,18 @@ public class MacWarehouseSKU {
 		}
 		else {
 			//There are multiple matches for this particular Model ID - find the best match by matching additional data items.
-			System.out.println("Multiple matches found for this modelID:" + receivedProduct.getModelID() + "**********. Possible # of choices: " + possibleProductMatchesFromMasterList.size());
-			
 			//Maker sure the data items are in the same format as the data in the master product list spreadsheet
 			cleanUpAdjustData(receivedProduct);
 			
 			ArrayList<MacWarehouseProduct> shortenedList = new ArrayList<MacWarehouseProduct>();
 			//Do different things based on device Type
-			if (receivedProduct.getOsVersion().contains("Mac") || receivedProduct.getOsVersion().contains("mac")) {
+			if (receivedProduct.getOsVersion().toLowerCase().contains("mac")) {
 				//Model ID matched. Narrow down by screen size, resolution, CPU, RAM, HD  & finally video card/screen resolution
 				for (MacWarehouseProduct match : possibleProductMatchesFromMasterList) {
-					if (match.getScreenSize() != null && match.getScreenSize().trim().equalsIgnoreCase(receivedProduct.getScreenSize())){
-						if (match.getRamSize() != null && match.getRamSize().equalsIgnoreCase(receivedProduct.getRamSize())) {
-							if (match.getHardDriveSize() != null && match.getHardDriveSize().equalsIgnoreCase(receivedProduct.getHardDriveSize())) {
-								if (match.getHardDriveType() != null && match.getHardDriveType().equalsIgnoreCase(receivedProduct.getHardDriveType())) {
+					if (doesScreenSizeMatch(receivedProduct, match)) {
+						if (doesRAMSizeMatch(receivedProduct, match)) {
+							if(doesHardDriveTypeMatch(receivedProduct, match)) {
+								if(doesHardDriveSizeMatch(receivedProduct, match)) {
 									if (match.getProcessor() != null && match.getProcessor().equalsIgnoreCase(receivedProduct.getProcessor())) {
 										if (match.getProcessorSpeed() != null && match.getProcessorSpeed().equals(receivedProduct.getProcessorSpeed())) {
 											shortenedList.add(match);
@@ -278,23 +280,17 @@ public class MacWarehouseSKU {
 			}//if OS = MacOS
 			else {
 				for (MacWarehouseProduct match : possibleProductMatchesFromMasterList) {
-					if (match.getHardDriveSize() != null && match.getHardDriveSize().equalsIgnoreCase(receivedProduct.getHardDriveSize())){
+					if (doesHardDriveSizeMatch(receivedProduct, match)){
 						if (match.getProductColor() != null && match.getProductColor().equalsIgnoreCase(receivedProduct.getProductColor())) {
-							//if (match.getCarrier() != null && match.getCarrier().equals(StringUtils.getDigits(receivedProduct.getProcessorSpeed()))) {
-								shortenedList.add(match);
-							//}
+							shortenedList.add(match);
 						}
 					}
 				}
 			}//else OS = IOS
 			
-			if (shortenedList.isEmpty()) {
-				System.out.println("Found entries in master list with the current model ID of : " + receivedProduct.getModelID());
-				System.out.println("BUT NONE OF THE ENTRY(ENTRIES) MATCH WITH THE REST OF SPECS. PRODUCT NEEDS TO BE ADDED TO THE MASTER DATABASE");
-				System.out.println("Specs:    " + receivedProduct.toString() + ", Color:  " + receivedProduct.getProductColor() + ",   Processor: " + receivedProduct.getProcessorDescription() +
-						", Hard Drive Type: " + receivedProduct.getHardDriveType());
-			}
-			else if (shortenedList.size() == 1){
+			if (shortenedList.size() == 1){
+				receivedProduct = this.setMatchingProductDataFields(receivedProduct, shortenedList.get(0));
+				/*
 				//Found an exact match. Assign the rest of the data fields!!!!!
 				receivedProduct.setSKU(shortenedList.get(0).getSKU());
 				receivedProduct.setCarrier(shortenedList.get(0).getCarrier());
@@ -309,6 +305,11 @@ public class MacWarehouseSKU {
 				receivedProduct.setProductYear(shortenedList.get(0).getProductYear());
 				receivedProduct.setScreenSize(shortenedList.get(0).getScreenSize());
 				receivedProduct.setSpecString(shortenedList.get(0).getSpecString());
+				//Set HD size, type to what's on the master list overwriting what was read from the device - this is to ensure that
+				//when generated barcode is scanned, it matches the item on the master list.
+				receivedProduct.setHardDriveSize(shortenedList.get(0).getHardDriveSize());
+				receivedProduct.setHardDriveType(shortenedList.get(0).getHardDriveType());
+				*/
 				System.out.println("Specs:    " + receivedProduct.getSKU() + "  " + receivedProduct.getModelNumber() + "        " + receivedProduct.toString() + "       " + receivedProduct.getProductName() + "    " + receivedProduct.getProductYear());
 			}
 			else {
@@ -318,6 +319,118 @@ public class MacWarehouseSKU {
 			}
 		}
 		
+	}
+	
+	public MacWarehouseProduct setMatchingProductDataFields(MacWarehouseProduct receivedProduct, MacWarehouseProduct matchedItemFromMaster) {
+		
+		receivedProduct.setSKU(matchedItemFromMaster.getSKU());
+		receivedProduct.setCarrier(matchedItemFromMaster.getCarrier());
+		receivedProduct.setCharger(matchedItemFromMaster.getCharger());
+		receivedProduct.setGPU(matchedItemFromMaster.getGPU());
+		receivedProduct.setModelNumber(matchedItemFromMaster.getModelNumber());
+		receivedProduct.setProductCategory(matchedItemFromMaster.getProductCategory());
+		receivedProduct.setProductClass(matchedItemFromMaster.getProductClass());
+		receivedProduct.setProductName(matchedItemFromMaster.getProductName());
+		receivedProduct.setProductSubCategory(matchedItemFromMaster.getProductSubCategory());
+		receivedProduct.setProductType(matchedItemFromMaster.getProductType());
+		receivedProduct.setProductYear(matchedItemFromMaster.getProductYear());
+		receivedProduct.setScreenSize(matchedItemFromMaster.getScreenSize());
+		receivedProduct.setSpecString(matchedItemFromMaster.getSpecString());
+		//Set HD size, type to what's on the master list overwriting what was read from the device - this is to ensure that
+		//when generated barcode is scanned, it matches the item on the master list.
+		receivedProduct.setHardDriveSize(matchedItemFromMaster.getHardDriveSize());
+		receivedProduct.setHardDriveType(matchedItemFromMaster.getHardDriveType());
+		
+		return receivedProduct;
+	}
+
+	private boolean doesHardDriveSizeMatch(MacWarehouseProduct receivedProduct, MacWarehouseProduct match) {
+		if (match.getHardDriveSize() != null && match.getHardDriveSize().equalsIgnoreCase(receivedProduct.getHardDriveSize()))
+			return true; //Values match, nothing more to do than return!
+		
+		//If the hard drive type is SSD, the drive capacity reported by MacOS is way lower than expected - 122GB vs 128GB actual, for example
+		//In this case, see if transforming the value into 2 power of 'n' notation helps
+		try {
+			//Get the units - last 2 characters of the value - 'MB', 'GB', 'TB', etc.
+			String memoryUnit = StringUtils.right(receivedProduct.getHardDriveSize(), 2);
+			//Capacity value starts at 0th position & ends at length - 2 (2 chars for memory unit at the end)
+			float capacity = Float.parseFloat(StringUtils.substring(receivedProduct.getHardDriveSize(), 0, receivedProduct.getHardDriveSize().length()-2));
+			
+			if (receivedProduct.getHardDriveType().equalsIgnoreCase("SSD")){
+				
+				if (capacity > 0) {
+					double log = Math.log(capacity) / Math.log(2);
+					long roundLog = Math.round(log);
+					capacity = (int) Math.pow(2, roundLog);
+				}
+				String adjustedHDSize = capacity + memoryUnit;
+				
+				if (match.getHardDriveSize() != null && match.getHardDriveSize().equalsIgnoreCase(adjustedHDSize)){
+					//SSD capacities are usually exponents of 2, but the values are underreported. Reset the value of HD size and return true as a match has been found
+					return true;
+				}
+			}
+			
+			//If an exact match has not been found, check to see if the difference in capacities are acceptable - this is again due to how the 
+			//HD capacity value is reported by Mac & iOS - reported value is always lower than actual advertised HD capacity
+			String spreadsheetItemMemoryUnit = StringUtils.right(match.getHardDriveSize(), 2);
+			float spreadSheetItemCapacity = Float.parseFloat(StringUtils.substring(match.getHardDriveSize(), 0, match.getHardDriveSize().length()-2));
+			
+			//Read the original value of receivedProduct's hard drive size
+			capacity = Float.parseFloat(StringUtils.substring(receivedProduct.getHardDriveSize(), 0, receivedProduct.getHardDriveSize().length()-2));
+			
+			if (memoryUnit.equalsIgnoreCase(spreadsheetItemMemoryUnit)) {
+				//This assumes a 'tolerance' value of 10%
+				if(Math.abs(capacity - spreadSheetItemCapacity) <= capacity/10f)
+					return true;
+			}
+			
+		}
+		catch (Exception e) {
+			System.out.println("Error while trying to adjust HD data to match master spreadsheet : " + e.getMessage());
+		}
+		
+		return false;
+	}
+
+	private boolean doesHardDriveTypeMatch(MacWarehouseProduct receivedProduct, MacWarehouseProduct match) {
+		if (match.getHardDriveType() != null && match.getHardDriveType().trim().equalsIgnoreCase(receivedProduct.getHardDriveType().trim()))
+			return true;
+		
+		//Sometimes data in the spreadsheet for hard drive type has values like "SSD+No SD", and when comparing a type of SSD
+		//doesn't match. Checking to see if the type of HDD or SSD against the spreadsheet values will fix that.
+		if (match.getHardDriveType() != null && match.getHardDriveType().trim().contains((receivedProduct.getHardDriveType())))
+			return true;
+		
+		//SSD & Flash are used interchangeably. This app only uses HDD or SSD for hard drive type
+		if (receivedProduct.getHardDriveType().equalsIgnoreCase("SSD")){
+			if (match.getHardDriveType().toLowerCase().contains("flash"))
+				//Both have the same hard drive type. one has a value of SSD, the other "Flash". 
+				return true;
+		}
+			
+		return false;
+	}
+
+	private boolean doesRAMSizeMatch(MacWarehouseProduct receivedProduct, MacWarehouseProduct match) {
+		// TODO Auto-generated method stub
+		return (match.getRamSize() != null && match.getRamSize().equalsIgnoreCase(receivedProduct.getRamSize()));
+	}
+
+	private boolean doesScreenSizeMatch(MacWarehouseProduct receivedProduct, MacWarehouseProduct match) {
+
+		if (match.getScreenSize() != null && match.getScreenSize().trim().equalsIgnoreCase(receivedProduct.getScreenSize()))
+			return true;
+		
+		//Sometimes there are discrepencies between what is listed in the master spreadsheet & what Apple uses in the product name
+		//For example, MacBook Pro 13" has a screen size of 13.3" in the spreadsheet. 13" != 13.3", but in reality, they should match!
+		int matchScreenSizeValue = (int) Float.parseFloat(match.getScreenSize());
+		int thisProductScreenSize = (int) Float.parseFloat(receivedProduct.getScreenSize());
+		
+		if (matchScreenSizeValue == thisProductScreenSize)
+			return true;
+		
+		return false;
 	}
 
 }

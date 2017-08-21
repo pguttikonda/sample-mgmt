@@ -33,7 +33,9 @@ public class BarcodeGenerator {
 	public BitMatrix generateBarcode( String contents, BarcodeFormat format, int width, int height) {
 		QRCodeWriter QRcodeWriter = new QRCodeWriter();
 		BitMatrix qrCode = null;
+		
 		if (contents != null && !contents.isEmpty()) {
+			System.out.println(contents);
 			try {
 				qrCode = QRcodeWriter.encode(contents, format, width, height);
 			}

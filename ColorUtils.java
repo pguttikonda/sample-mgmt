@@ -1,7 +1,19 @@
 package com.kenss.utilities;
 
 import java.awt.Color;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
+
+import org.apache.commons.lang3.StringUtils;
+
+import com.inventory.macwarehouse.MacWarehouseProduct;
 
 
 public class ColorUtils {
@@ -11,24 +23,15 @@ public class ColorUtils {
 	 */
 	private ArrayList<ColorName> initColorList() {
 		ArrayList<ColorName> colorList = new ArrayList<ColorName>();
-		colorList.add(new ColorName("White", 0xFA, 0xEB, 0xD7));
-		colorList.add(new ColorName("Aqua", 0x00, 0xFF, 0xFF));
-		colorList.add(new ColorName("Azure", 0xF0, 0xFF, 0xFF));
 		colorList.add(new ColorName("Black", 0x00, 0x00, 0x00));
-		colorList.add(new ColorName("Blue", 0x00, 0x00, 0xFF));
-		colorList.add(new ColorName("Coral", 0xFF, 0x7F, 0x50));
-		colorList.add(new ColorName("DarkGray", 0xA9, 0xA9, 0xA9));
-		colorList.add(new ColorName("DarkSlateGray", 0x2F, 0x4F, 0x4F));
-		colorList.add(new ColorName("DimGray", 0x69, 0x69, 0x69));
-		colorList.add(new ColorName("Gold", 0xFF, 0xD7, 0x00));
-		colorList.add(new ColorName("Gray", 0x80, 0x80, 0x80));
+		colorList.add(new ColorName("Jet Black", 5, 0, 2));
+		colorList.add(new ColorName("Space Gray", 59, 59, 60));
+		colorList.add(new ColorName("Silver", 228, 231, 232));
+		colorList.add(new ColorName("Rose Gold", 183, 110, 121));
+		colorList.add(new ColorName("Gold", 247, 231, 206));
 		colorList.add(new ColorName("Green", 0x00, 0x80, 0x00));
-		colorList.add(new ColorName("LightGray", 0xD3, 0xD3, 0xD3));
-		colorList.add(new ColorName("LightSlateGray", 0x77, 0x88, 0x99));
-		colorList.add(new ColorName("Orange", 0xFF, 0xA5, 0x00));
 		colorList.add(new ColorName("Red", 0xFF, 0x00, 0x00));
-		colorList.add(new ColorName("Silver", 0xC0, 0xC0, 0xC0));
-		colorList.add(new ColorName("SlateGray", 0x70, 0x80, 0x90));
+		colorList.add(new ColorName("Blue", 0x00, 0x00, 0xFF));
 		colorList.add(new ColorName("White", 0xFF, 0xFF, 0xFF));
 		return colorList;
 	}
@@ -71,6 +74,7 @@ public class ColorUtils {
 		int r = (hexColor & 0xFF0000) >> 16;
 		int g = (hexColor & 0xFF00) >> 8;
 		int b = (hexColor & 0xFF);
+		System.out.println(hexColor + " - RGB: " + r + ", " + g + ", " + b);
 		return getColorNameFromRgb(r, g, b);
 	}
 
@@ -118,5 +122,36 @@ public class ColorUtils {
 		public String getName() {
 			return name;
 		}
+	}
+
+	public boolean checkHexColorMapping(MacWarehouseProduct receivedProduct) {
+		File colors = new File("resources/colors.txt");
+    	Map<String, String> colorCodes = new HashMap<String, String>();
+    	
+    	try {
+    	    FileReader reader = new FileReader(colors);
+    	    Properties props = new Properties();
+    	    props.load(reader);
+    	 
+    	    Enumeration<String> keys = (Enumeration<String>) props.propertyNames();
+    	    String hexColorCode = StringUtils.substring(receivedProduct.getProductColor(), 1);
+    	    while(keys.hasMoreElements()) {
+    	    	String key = keys.nextElement();
+    	    	if(key.trim().equalsIgnoreCase(hexColorCode)){
+    	    		receivedProduct.setProductColor(props.getProperty(key));
+    	    		return true;
+    	    	}
+    	    }
+    	 
+    	    reader.close();
+    	} catch (FileNotFoundException ex) {
+    	    // file does not exist
+    		return false;
+    	} catch (IOException ex) {
+    	    // I/O error
+    		return false;
+    	}
+    	
+		return false;
 	}
 }

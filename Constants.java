@@ -59,14 +59,19 @@ public final class Constants {
 	public static final String QUADCOREIXEONCODE = "QCiX";
 	public static final String XEON8CORE = "Xeon8Core";
 	public static final String XEON8CORECODE = "X8C";
-	public static final int BARCODE_WIDTH = 80;
-	public static final int BARCODE_HEIGHT = 40;
-	public static String DEFAULT_FILE_PATH = "/Users/pguttikonda/Desktop/MacWarehouse/generated/";
+	public static final int BARCODE_WIDTH = 300;
+	public static final int BARCODE_HEIGHT = 300;
+	public static String DEFAULT_FILE_PATH;
 	public static String MASTER_PRODUCT_FILE_NAME;
 	public static boolean DOWNLOAD_FROM_GDRIVE;
 	public static String GDRIVE_USER_INFO;
 	public static String GDRIVE_CREDS_FILE;
 	public static String GENERATED_FILE_PATH;
 	public static String PRINTER_NAME;
-	public static String LABEL_TEMPLATE;
+	public static String LABEL_TEMPLATE;	
+	public static int BARCODE_TIMER = 10000; //In milliseconds - this is equivalent to 10 secs
+	public static String DBUSER = null;
+	public static String DBPASSWORD;
+	public static String DBHOST;
+	public static long DBPORT;
 }

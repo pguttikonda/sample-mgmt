@@ -35,6 +35,9 @@ public class MacWarehouseProduct implements java.lang.Iterable<MacWarehouseProdu
 		this.noOfCores = 0;
 		this.osVersion = "";
 		this.serialNumber = "";
+		this.batteryCycleCount = -1;
+		this.batteryCondition = "";
+
 	}
 
 	@CsvBindByName(column = "SKU", required = true)
@@ -114,6 +117,10 @@ public class MacWarehouseProduct implements java.lang.Iterable<MacWarehouseProdu
 	private String osVersion;
 	
 	private String serialNumber;
+	
+	private int batteryCycleCount;
+	
+	private String batteryCondition;
 
 	public String getSKU() {
 		return SKU;
@@ -346,6 +353,22 @@ public class MacWarehouseProduct implements java.lang.Iterable<MacWarehouseProdu
 
 	public void setNoOfCores(int noOfCores) {
 		this.noOfCores = noOfCores;
+	}
+
+	public int getBatteryCycleCount() {
+		return batteryCycleCount;
+	}
+
+	public void setBatteryCycleCount(int batteryCycleCount) {
+		this.batteryCycleCount = batteryCycleCount;
+	}
+
+	public String getBatteryCondition() {
+		return batteryCondition;
+	}
+
+	public void setBatteryCondition(String batteryCondition) {
+		this.batteryCondition = batteryCondition;
 	}
 	
 	

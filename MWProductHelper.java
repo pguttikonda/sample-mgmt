@@ -71,6 +71,9 @@ public class MWProductHelper {
 				//System.out.println(systemInfoString);
 			}
 			
+			systemInfoString = MacSystemInformation.getBatteryInfo();
+			parseBatteryInfo(receivedProduct, systemInfoString);
+			
 			String descriptiveModelInfo = getProductSpecsFromApple(receivedProduct.getSerialNumber());
 			if(!descriptiveModelInfo.isEmpty()) {
 				parseDescriptiveModelInfo(receivedProduct, descriptiveModelInfo);
@@ -106,14 +109,14 @@ public class MWProductHelper {
 			}
 		}
 		else if (receivedProduct.getOsVersion().toLowerCase().contains("ios")) {
+			receivedProduct.setProductType(info);
+			
 			if (info.indexOf('(') > -1) {
-				String deviceName = info.substring(0, info.indexOf('('));
-				receivedProduct.setProductType(deviceName);
-				String capacity = StringUtils.substringBetween(info, "(", ")");
-				receivedProduct.setHardDriveSize(capacity);
+				String text = StringUtils.substringBetween(info, "(", ")");
+				//If "text" has storage info use it to set harddrive size
+				if (text.contains("GB") || text.contains("TB"))
+					receivedProduct.setHardDriveSize(text);
 			}
-			else
-				receivedProduct.setProductType(info);
 		}
 		return receivedProduct;
 		
@@ -278,6 +281,31 @@ public class MWProductHelper {
 		//receivedProduct.setVRAM(StrLookup.mapLookup(propertyMap).lookup("VRAM").trim());
 		receivedProduct.setGPU(StrLookup.mapLookup(propertyMap).lookup("Chipset Model").trim());
 
+		return receivedProduct;
+	}
+	
+	private MacWarehouseProduct parseBatteryInfo (MacWarehouseProduct receivedProduct, String batteryInfo) {
+		if (receivedProduct == null || batteryInfo == null || batteryInfo.isEmpty())
+			return null;
+		
+		if (!batteryInfo.contains("Battery:")) {
+			//System.out.println("Cannot find battery info - either no battery or this is a desktop!");
+			return null;
+		}
+		
+		
+		Map<String, String> propertyMap = convertSystemInfoStringToMap(batteryInfo);
+
+		if (propertyMap.isEmpty())
+			return null;
+		
+		receivedProduct.setBatteryCycleCount(Integer.parseInt(StrLookup.mapLookup(propertyMap).lookup("Cycle Count")));
+		receivedProduct.setBatteryCondition(StrLookup.mapLookup(propertyMap).lookup("Condition"));
+		
+		
+		receivedProduct.setSerialNumber(StrLookup.mapLookup(propertyMap).lookup("Serial Number (system)").trim());
+		
+		
 		return receivedProduct;
 	}
 	
@@ -492,9 +520,27 @@ public class MWProductHelper {
 	
 	        return stringBuilder.toString().trim();
 	    }
+	    
+	    static String getBatteryInfo() throws IOException 
+	    {
+	    	Runtime runtime = Runtime.getRuntime();
+	        Process process = runtime.exec("system_profiler -detailLevel full SPPowerDataType");
+	        BufferedReader systemInformationReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+	
+	        StringBuilder stringBuilder = new StringBuilder();
+	        String line;
+	
+	        while ((line = systemInformationReader.readLine()) != null)
+	        {
+	            stringBuilder.append(line);
+	            stringBuilder.append(System.lineSeparator());
+	        }
+	
+	        return stringBuilder.toString().trim();
+	    }
 	}
 
-	public MacWarehouseProduct getDeviceInformationFromCFGUtilFile(MacWarehouseProduct receivedProduct, String iOSDataFileName) {
+	public MacWarehouseProduct getDeviceInformationFromCFGUtilFile(MacWarehouseProduct receivedProduct, String iOSDataFileName) throws Exception {
 		
 		//For iOS devices, a file is generated with all the device info into folder specified in properties file.
 		receivedProduct.setOsVersion("iOS");
@@ -511,6 +557,7 @@ public class MWProductHelper {
 	        		receivedProduct.setHardDriveSize(StringUtils.deleteWhitespace(FormatUtil.formatBytesDecimal(dataFields.totalDiskCapacity)));
 	        		receivedProduct.setSerialNumber(dataFields.serialNumber);
 	        		receivedProduct.setProductColor(dataFields.color);
+	        		System.out.println("CFG specs: " + receivedProduct.getModelID() + ", Color: " + receivedProduct.getProductColor());
 	        		//TODO - Get other fields
 	        		//Determine if this is a cellular device or WiFi only (ICCID? or IMEI works for a carrier check, but what if there is no service)
 	        		//What other fields can be used?!?!?
@@ -526,9 +573,8 @@ public class MWProductHelper {
 		}
 		catch (Exception e) {
 			System.out.println("Exception while trying to open CFGUTIL generated files: " + e.getMessage());
+			throw e;
 		}
-		
-		return receivedProduct;
 		
 	}
 
